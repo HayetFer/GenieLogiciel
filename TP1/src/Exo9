@@ -1,0 +1,16 @@
+import java.util.*;
+public class Exo9 {
+public static void main(String... args) {
+Map<String, List<String>> synonymes = new HashMap<>();
+String mot = "inventer";
+List<String> synMot = Arrays.asList("créer", "imaginer", "concevoir");
+synonymes.put(mot, synMot);
+String mot2 = "manger";
+List<String> synMot2 = new ArrayList<String>();
+synMot2.add("avaler");
+synMot2.add("croquer");
+synMot2.add("macher");
+synonymes.put(mot2, synMot2);
+System.out.println(synonymes);
+}
+}
