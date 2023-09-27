@@ -12,11 +12,26 @@ public class PileDeChaines {
     }
 
     public String depiler() {
-        return pile.pop();
+        if(!estVide()){
+            return pile.pop();
+        }
+        else {
+            return "Pile vile";
+        }
     }
-
+    public boolean estVide(){
+        return pile.isEmpty();
+    }
     public void afficher() {
         System.out.println(pile);
+    }
+    public String Consulter() {
+        if(!estVide()){
+            return pile.getFirst();
+        }
+        else {
+            return "Pile vile";
+        }
     }
 
     public static void main(String[] args) {

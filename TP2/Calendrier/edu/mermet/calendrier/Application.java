@@ -101,7 +101,7 @@ public class Application {
         }
         else {
                     nbEssais++;
-                    LoggerC.warning(" " + nbEssais +  "connexions erronées successives  \n");
+                    LoggerC.warning(" " + nbEssais +  " connexions erronées successives  \n");
 
         }
       }

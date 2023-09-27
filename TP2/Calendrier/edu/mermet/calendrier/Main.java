@@ -13,8 +13,6 @@ public class Main {
     LoggerA.setLevel(Level.INFO);
     // Associer à chaque logger son handler ; le log doit être stocké dans des fichiers séparés suivant la fonctionnalité (log ou action) concernée ; les logs doivent être ajoutés dans les fichier d'une exécution sur l'autre.
     ConsoleHandler consHandler = new ConsoleHandler();
-    consHandler.setLevel(Level.OFF);
-    LoggerA.addHandler(consHandler);
     
 
     FileHandler fileHandler2 = new FileHandler("actions.xml");
@@ -26,16 +24,17 @@ public class Main {
     // Les logs concernant la connexion doivent être au format texte standard, ceux concernant les actions au format xml.
     for (String param: params) {
       if ("--verbose".equals(param)) {
-	  // avec cette option, les logs des actions doivent également être affichés sur la sortie "Erreur"
+        LoggerA.addHandler(consHandler);
         consHandler.setLevel(Level.INFO);
+        fileHandler2.setLevel(Level.OFF);
       } else if ("--debug".equals(param)) {
-        fileHandler1.setLevel(Level.FINEST);
-        fileHandler2.setLevel(Level.FINEST);
+        LoggerA.setLevel(Level.FINEST);
+        LoggerC.setLevel(Level.FINEST);
       }
       else if ("--silent".equals(param)) {
         fileHandler1.setLevel(Level.OFF);
         fileHandler2.setLevel(Level.OFF);
-
+        
       }
     }
   }
