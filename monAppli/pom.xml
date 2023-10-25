@@ -75,7 +75,7 @@
                     <version>3.2.0</version>
                     <configuration>
                         <configLocation>
-                            google_checks.xml
+                            src/properties/stylePerso.xml
                         </configLocation>
                     </configuration>
                     <dependencies>
