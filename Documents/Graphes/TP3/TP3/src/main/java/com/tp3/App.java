@@ -1,6 +1,7 @@
 package com.tp3;
 
 import java.util.HashSet;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 
@@ -53,57 +54,58 @@ public class App
         graph.display();
     }
 
-        public static void DijkstraNaif(Graph graph, String sourceId) 
-    {
+       public static void DijkstraNaif(Graph graph, String sourceId) {
         long startTime = System.nanoTime();
 
-        // Initialisation des distances et du nœud source
+        // Initialisation des distances et des parents
         for (Node node : graph) {
             node.setAttribute("dist", Double.POSITIVE_INFINITY); // Distance infinie par défaut
+            node.setAttribute("parent", null); // Pas de parent pour le moment
         }
+
         Node source = graph.getNode(sourceId);
         source.setAttribute("dist", 0.0); // Distance de la source = 0
 
+        // Initialisation de la file de priorité (f)
+        PriorityQueue<Node> f = new PriorityQueue<>((a, b) -> {
+            double distA = (double) a.getAttribute("dist");
+            double distB = (double) b.getAttribute("dist");
+            return Double.compare(distA, distB);
+        });
+
+        f.add(source); // Ajout de la source dans la file de priorité
+
         Set<Node> visited = new HashSet<>(); // Ensemble des nœuds visités
 
-        while (visited.size() < graph.getNodeCount()) {
-            // Trouver le nœud u avec la distance minimale non visité
-            Node u = null;
-            double minDist = Double.POSITIVE_INFINITY;
-
-            for (Node node : graph) {
-                if (!visited.contains(node)) {
-                    double dist = (double) node.getAttribute("dist");
-                    if (dist < minDist) {
-                        minDist = dist;
-                        u = node;
-                    }
-                }
-            }
-
-            if (u == null) break; // Aucun nœud accessible restant
+        while (!f.isEmpty()) {
+            // Extraction du nœud u avec la distance minimale
+            Node u = f.poll(); // u est le nœud avec la distance la plus petite
             visited.add(u); // Marquer u comme visité
 
             // Relaxation des voisins de u
             for (Edge edge : u.edges().toArray(Edge[]::new)) {
                 Node v = edge.getTargetNode();
-                if (visited.contains(v)) continue;
+                if (visited.contains(v)) continue; // Si v est déjà visité, on passe
 
                 double weight = (double) edge.getAttribute("weight");
                 double newDist = (double) u.getAttribute("dist") + weight;
 
+                // Si on trouve un chemin plus court vers v, on met à jour sa distance et son parent
                 if (newDist < (double) v.getAttribute("dist")) {
                     v.setAttribute("dist", newDist);
+                    v.setAttribute("parent", u); // v.parent = u
+
+                    // Ajout de v dans la file de priorité avec la nouvelle distance
+                    f.add(v);
                 }
             }
         }
 
         long endTime = System.nanoTime();
 
-        // Afficher les distances finales
+        // Affichage des distances finales
         System.out.println("Résultats du Dijkstra naïf (temps : " + (endTime - startTime) / 1e6 + " ms):");
     }
-
     // Utilisation de l'algorithme Dijkstra intégré de GraphStream
     public static void DijkstraGraphStream(Graph graph, String sourceId) 
     {
@@ -118,11 +120,6 @@ public class App
 
         // Afficher les distances finales
         System.out.println("Résultats du Dijkstra (GraphStream) (temps : " + (endTime - startTime) / 1e6 + " ms):");
-        for (Node node : graph) {
-            double dist = dijkstraGS.getPathLength(node);
-            //System.out.println("Nœud " + node.getId() + ": " + (dist == Double.POSITIVE_INFINITY ? "Inaccessible" : dist));
-        }
-
         dijkstraGS.clear();
     }
     public static Graph generateRandomGraph(int numNodes, int avgDegree) {
@@ -164,7 +161,7 @@ public class App
             Graph graph = generateRandomGraph(size, avgDegree);
 
             // Affichage du graphe
-            //graph.display(); // Vous pouvez activer l'affichage du graphe si nécessaire
+            //graph.display();
 
             // Appliquer les deux algorithmes de Dijkstra
             System.out.println("\n=== Dijkstra Naïf ===");
