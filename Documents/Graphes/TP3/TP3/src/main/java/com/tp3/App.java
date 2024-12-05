@@ -1,9 +1,13 @@
 package com.tp3;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
+
+import javax.swing.JFrame;
 
 import org.graphstream.algorithm.Dijkstra;
 import org.graphstream.algorithm.generator.RandomGenerator;
@@ -11,6 +15,11 @@ import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 /**
  * Hello world!
@@ -54,68 +63,58 @@ public class App
         graph.display();
     }
 
-       public static void DijkstraNaif(Graph graph, String sourceId) {
-        long startTime = System.nanoTime();
-
-        // Initialisation des distances et des parents
-        for (Node node : graph) {
-            node.setAttribute("dist", Double.POSITIVE_INFINITY); // Distance infinie par défaut
-            node.setAttribute("parent", null); // Pas de parent pour le moment
+    public static void DijkstraNaif(Graph graph, String sourceId) {
+        Node sourceNode = graph.getNode(sourceId);
+        PriorityQueue<Node> f = new PriorityQueue<>((a, b) -> 
+            Double.compare(
+                a.getAttribute("dist") != null ? (Double)a.getAttribute("dist") : Double.POSITIVE_INFINITY, 
+                b.getAttribute("dist") != null ? (Double)b.getAttribute("dist") : Double.POSITIVE_INFINITY
+            )
+        );
+        for (Node node : graph.nodes().toArray(Node[]::new)) {
+            node.setAttribute("dist", Double.POSITIVE_INFINITY);
+            node.setAttribute("parent", null);
         }
-
-        Node source = graph.getNode(sourceId);
-        source.setAttribute("dist", 0.0); // Distance de la source = 0
-
-        // Initialisation de la file de priorité (f)
-        PriorityQueue<Node> f = new PriorityQueue<>((a, b) -> {
-            double distA = (double) a.getAttribute("dist");
-            double distB = (double) b.getAttribute("dist");
-            return Double.compare(distA, distB);
-        });
-
-        f.add(source); // Ajout de la source dans la file de priorité
-
-        Set<Node> visited = new HashSet<>(); // Ensemble des nœuds visités
-
+        sourceNode.setAttribute("dist", 0.0);
+        f.add(sourceNode);
+        Set<Node> processedNodes = new HashSet<>();
+    
+        long startTime = System.nanoTime();
         while (!f.isEmpty()) {
-            // Extraction du nœud u avec la distance minimale
-            Node u = f.poll(); // u est le nœud avec la distance la plus petite
-            visited.add(u); // Marquer u comme visité
-
-            // Relaxation des voisins de u
+            Node u = f.poll();
+    
+            if (processedNodes.contains(u)) continue;
+            processedNodes.add(u);
+    
             for (Edge edge : u.edges().toArray(Edge[]::new)) {
-                Node v = edge.getTargetNode();
-                if (visited.contains(v)) continue; // Si v est déjà visité, on passe
-
-                double weight = (double) edge.getAttribute("weight");
-                double newDist = (double) u.getAttribute("dist") + weight;
-
-                // Si on trouve un chemin plus court vers v, on met à jour sa distance et son parent
-                if (newDist < (double) v.getAttribute("dist")) {
+                Node v = edge.getOpposite(u);
+                
+                Double edgeWeight = (double)edge.getAttribute("weight");
+    
+                Double uDist = (double)u.getAttribute("dist");    
+                double newDist = uDist + edgeWeight;
+    
+                Double vDist = (double)v.getAttribute("dist");
+                if (newDist < vDist) {
                     v.setAttribute("dist", newDist);
-                    v.setAttribute("parent", u); // v.parent = u
-
-                    // Ajout de v dans la file de priorité avec la nouvelle distance
+                    v.setAttribute("parent", u);
                     f.add(v);
                 }
             }
         }
-
+    
         long endTime = System.nanoTime();
-
-        // Affichage des distances finales
-        System.out.println("Résultats du Dijkstra naïf (temps : " + (endTime - startTime) / 1e6 + " ms):");
+        System.out.println("Résultats du Dijkstra Naïf (temps : " + (endTime - startTime) / 1e6 + " ms)");
     }
     // Utilisation de l'algorithme Dijkstra intégré de GraphStream
     public static void DijkstraGraphStream(Graph graph, String sourceId) 
     {
-        long startTime = System.nanoTime();
 
         Dijkstra dijkstraGS = new Dijkstra(Dijkstra.Element.EDGE, null, "weight");
         dijkstraGS.init(graph);
         dijkstraGS.setSource(graph.getNode(sourceId));
+        long startTime = System.nanoTime();
         dijkstraGS.compute();
-
         long endTime = System.nanoTime();
 
         // Afficher les distances finales
@@ -152,7 +151,7 @@ public class App
     // Fonction pour effectuer les tests sur plusieurs graphes
     public static void runTests() {
         int[] graphSizes = {100, 200, 500, 1000, 2000, 3000, 4000, 5000, 10000, 30000, 50000}; // Tailles des graphes à tester
-        int avgDegree = 3;
+        int avgDegree = 10;
 
         for (int size : graphSizes) {
             System.out.println("=== Test sur un graphe de " + size + " nœuds ===");
@@ -174,9 +173,52 @@ public class App
         }
     }
 
-    public static void main(String[] args) 
-    {
-       runTests();
+    public static void showCSVFile()
+        {
+            String csvFile = "TP3/src/resources/Dijkstra.csv";
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+    
+            try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+                String line;
+                boolean header = true;
+    
+                while ((line = br.readLine()) != null) {
+                    if (header) {
+                        header = false; 
+                        continue;
+                    }
+                    String[] values = line.split(",");
+                    int graphSize = Integer.parseInt(values[0].trim());
+                    double naiveTime = Double.parseDouble(values[1].trim());
+                    double graphStreamTime = Double.parseDouble(values[2].trim());
+    
+                    dataset.addValue(naiveTime, "Dijkstra Naïf", String.valueOf(graphSize));
+                    dataset.addValue(graphStreamTime, "Dijkstra GraphStream", String.valueOf(graphSize));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    
+            // Création du graphique
+            JFreeChart lineChart = ChartFactory.createLineChart(
+                    "Comparaison des performances de Dijkstra",
+                    "Taille du graphe (nœuds)",
+                    "Temps d'exécution (ms)",
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true, true, false);
+    
+            // Affichage dans une fenêtre
+            JFrame frame = new JFrame("Dijkstra Performance Plot");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.add(new ChartPanel(lineChart));
+            frame.pack();
+            frame.setVisible(true);
+        }
+        public static void main(String[] args) 
+        {
+            showCSVFile();
+       //runTests();
     }
    
 }
